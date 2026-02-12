@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RinPizzle 💕</title>
+<meta http-equiv="Permissions-Policy" content="camera=(self)">
+<title>Rin-Pizzle 💕</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400;700&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
@@ -113,7 +114,7 @@
 </style>
 </head>
 <body>
-<div class="top-bar"><h1>💕 RinPizzle 💕</h1><div class="sub">Capture Your Love. Piece It Together.</div></div>
+<div class="top-bar"><h1>💕 Rin-Pizzle 💕</h1><div class="sub">Capture Your Love. Piece It Together.</div></div>
 <div class="stage" id="stage">
   <!-- Config is hardcoded — no setup needed -->
 
@@ -168,7 +169,7 @@
       <div id="lbRows"></div>
     </div>
     <div class="lb-empty" id="lbEmpty">No scores yet!<br>Solve a puzzle to get on the board. 💕</div>
-    <!-- <button class="lb-clear" id="lbClearBtn">CLEAR ALL SCORES</button> -->
+    <button class="lb-clear" id="lbClearBtn">CLEAR ALL SCORES</button>
   </div>
 </div>
 
@@ -368,15 +369,22 @@ $('lbFilters').addEventListener('click',async e=>{
 // ===== INIT =====
 async function init(){
   // 1. Start camera FIRST
+  $('loadMsg').textContent='STARTING CAMERA...';
   try{
-    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
+    const camPromise=navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
+    const timeoutPromise=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000));
+    const s=await Promise.race([camPromise,timeoutPromise]);
     vid.srcObject=s;
     await new Promise(r=>{vid.onloadedmetadata=()=>vid.play().then(r)});
     hC.width=vid.videoWidth;hC.height=vid.videoHeight;
-    console.log('📷 Camera started');
+    console.log('📷 Camera started',vid.videoWidth,'x',vid.videoHeight);
   }catch(e){
     console.error('Camera error:',e);
-    $('loadMsg').textContent='⚠ CAMERA ACCESS REQUIRED';
+    const msg=e.name==='NotAllowedError'?'⚠ CAMERA PERMISSION DENIED'
+      :e.name==='NotFoundError'?'⚠ NO CAMERA FOUND'
+      :e.message==='timeout'?'⚠ CAMERA TIMED OUT'
+      :'⚠ CAMERA ERROR: '+e.message;
+    $('loadMsg').innerHTML=msg+'<br><br><span style="font-size:10px;color:#ff4d6d;cursor:pointer;border:1px solid #ff4d6d;padding:6px 16px;border-radius:20px" onclick="location.reload()">↺ RETRY</span>';
     return;
   }
 
