@@ -109,38 +109,13 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .load-ov p{font-size:11px;color:rgba(255,180,200,0.4);letter-spacing:2px}
 
-  /* Setup screen */
-  .setup-ov{position:absolute;inset:0;z-index:400;background:#1a0a10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;border-radius:16px}
-  .setup-ov.off{display:none}
-  .setup-ov h2{font-size:28px;color:#ff4d6d;font-family:'Playfair Display',serif;letter-spacing:6px;text-shadow:0 0 30px rgba(255,77,109,0.3)}
-  .setup-ov p{font-size:11px;color:rgba(255,180,200,0.5);max-width:400px;text-align:center;line-height:1.6}
-  .setup-ov .setup-input{display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:8px}
-  .setup-ov input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,77,109,0.2);border-radius:8px;padding:10px 16px;color:#fff;font-family:'Space Mono',monospace;font-size:12px;width:320px;outline:none;transition:border 0.2s}
-  .setup-ov input:focus{border-color:#ff4d6d}
-  .setup-ov input::placeholder{color:rgba(255,180,200,0.25)}
-  .setup-ov .setup-hint{font-size:9px;color:rgba(255,180,200,0.25);margin-top:2px}
-  .setup-ov button{margin-top:12px;background:rgba(255,77,109,0.15);border:1px solid #ff4d6d;border-radius:30px;padding:12px 32px;color:#ff4d6d;font-family:'Space Mono',monospace;font-size:13px;cursor:pointer;letter-spacing:2px;transition:all 0.2s}
-  .setup-ov button:hover{background:rgba(255,77,109,0.3)}
-  .setup-ov .setup-err{color:#ff4444;font-size:11px;display:none}
+  /* Setup screen - removed, config is hardcoded */
 </style>
 </head>
 <body>
 <div class="top-bar"><h1>💕 RinPizzle 💕</h1><div class="sub">Capture Your Love. Piece It Together.</div></div>
 <div class="stage" id="stage">
-  <!-- Firebase setup screen -->
-  <div class="setup-ov" id="setupOv">
-    <h2>💕 Setup Firebase</h2>
-    <p>To save scores online, paste your Firebase config below. Get it from <a href="https://console.firebase.google.com" target="_blank" style="color:#ff4d6d">Firebase Console</a> → Project Settings → Your Apps → Config.</p>
-    <div class="setup-input">
-      <input id="cfgApiKey" placeholder="apiKey" autocomplete="off">
-      <input id="cfgProjectId" placeholder="projectId" autocomplete="off">
-      <input id="cfgAppId" placeholder="appId (optional)" autocomplete="off">
-      <div class="setup-hint">Only apiKey and projectId are required</div>
-      <div class="setup-err" id="setupErr">Could not connect to Firebase</div>
-      <button id="setupBtn">💖 CONNECT & PLAY</button>
-      <button id="skipBtn" style="background:none;border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.4);font-size:11px;padding:8px 20px;margin-top:4px">SKIP (local scores only)</button>
-    </div>
-  </div>
+  <!-- Config is hardcoded — no setup needed -->
 
   <div class="hearts-bg" id="heartsBg"></div>
   <div class="load-ov" id="loadOv"><div class="load-sp"></div><p id="loadMsg">STARTING CAMERA...</p></div>
@@ -217,73 +192,28 @@ let playerName=localStorage.getItem('lp_name')||'';
 let db=null; // Firestore instance
 let useFirebase=false;
 
-// ===== FIREBASE SETUP =====
-function initFirebase(config){
-  try{
-    const app=firebase.initializeApp({
-      apiKey:config.apiKey,
-      projectId:config.projectId,
-      appId:config.appId||'auto'
-    });
-    db=firebase.firestore();
-    useFirebase=true;
-    // Save config for next time
-    localStorage.setItem('lp_firebase',JSON.stringify(config));
-    console.log('🔥 Firebase connected to project:',config.projectId);
-    return true;
-  }catch(e){
-    console.error('Firebase init failed:',e);
-    return false;
-  }
-}
+// ===== FIREBASE CONFIG =====
+// ✏️ PASTE YOUR FIREBASE CONFIG HERE (get it from Firebase Console → Project Settings → Your Apps)
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAp4-l96pbDYuGc6r7uORTiUzq8LRR81Ys",
+  projectId: "rin-puzzle"
+};
 
-// Try loading saved config
-const savedCfg=localStorage.getItem('lp_firebase');
-if(savedCfg){
-  try{
-    const cfg=JSON.parse(savedCfg);
-    if(cfg.apiKey&&cfg.projectId){
-      initFirebase(cfg);
-      $('setupOv').classList.add('off');
-    }
-  }catch(e){}
-}
-
-$('setupBtn').addEventListener('click',async()=>{
-  const apiKey=$('cfgApiKey').value.trim();
-  const projectId=$('cfgProjectId').value.trim();
-  const appId=$('cfgAppId').value.trim();
-
-  if(!apiKey||!projectId){
-    $('setupErr').textContent='apiKey and projectId are required';
-    $('setupErr').style.display='block';
+// Auto-connect on load
+(function initFirebase(){
+  if(FIREBASE_CONFIG.apiKey==='YOUR_API_KEY_HERE'){
+    console.warn('⚠️ Firebase not configured — using local scores only. Edit FIREBASE_CONFIG in index.html.');
     return;
   }
-
-  $('setupBtn').textContent='CONNECTING...';
-  const ok=initFirebase({apiKey,projectId,appId});
-
-  if(ok){
-    // Test connection
-    try{
-      await db.collection('scores').limit(1).get();
-      $('setupOv').classList.add('off');
-    }catch(e){
-      $('setupErr').textContent='Connected but Firestore access failed. Check Firestore rules.';
-      $('setupErr').style.display='block';
-      $('setupBtn').textContent='💖 CONNECT & PLAY';
-    }
-  }else{
-    $('setupErr').textContent='Invalid Firebase config';
-    $('setupErr').style.display='block';
-    $('setupBtn').textContent='💖 CONNECT & PLAY';
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db=firebase.firestore();
+    useFirebase=true;
+    console.log('🔥 Firebase connected to:',FIREBASE_CONFIG.projectId);
+  }catch(e){
+    console.error('Firebase init failed:',e);
   }
-});
-
-$('skipBtn').addEventListener('click',()=>{
-  useFirebase=false;
-  $('setupOv').classList.add('off');
-});
+})();
 
 // ===== LEADERBOARD (Firebase Firestore) =====
 async function saveScore(name,seconds,moveCount,grid){
