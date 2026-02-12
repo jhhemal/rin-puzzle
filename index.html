@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Love Puzzle 💕</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#1a0a10;color:#fff;font-family:'Space Mono',monospace;height:100vh;width:100vw;overflow:hidden;display:flex;flex-direction:column;align-items:center;user-select:none}
+
+  .top-bar{width:100%;text-align:center;padding:10px 0 2px;z-index:50;background:linear-gradient(180deg,#1a0a10 0%,transparent 100%)}
+  .top-bar h1{font-size:24px;letter-spacing:10px;color:#ff4d6d;text-transform:uppercase;text-shadow:0 0 30px rgba(255,77,109,0.35);font-family:'Playfair Display',serif}
+  .top-bar .sub{font-size:10px;letter-spacing:2px;color:rgba(255,180,200,0.4);margin-top:1px}
+
+  .stage{position:relative;flex:1;width:100%;overflow:hidden}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:1;transition:filter 0.5s ease}
+  video.blurred{filter:blur(18px) brightness(0.35) saturate(1.3) hue-rotate(-10deg)}
+  #handCanvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);z-index:10;pointer-events:none}
+
+  .hearts-bg{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .heart-float{position:absolute;bottom:-40px;font-size:20px;opacity:0.15;animation:floatUp linear infinite}
+  @keyframes floatUp{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:0.15}50%{opacity:0.25}100%{transform:translateY(-110vh) rotate(45deg) scale(0.5);opacity:0}}
+
+  .hud{position:absolute;z-index:20;pointer-events:none}
+  .phase-badge{top:8px;right:10px;background:rgba(30,5,15,0.82);backdrop-filter:blur(10px);border:1px solid rgba(255,77,109,0.12);border-radius:10px;padding:8px 12px;max-width:210px;pointer-events:auto}
+  .phase-badge .title{font-size:10px;font-weight:700;color:#ff4d6d;letter-spacing:2px;margin-bottom:4px}
+  .phase-badge .inst{font-size:10px;color:rgba(255,255,255,0.6);line-height:1.5}
+  .phase-badge .inst b{color:#ff4d6d;font-weight:700}
+
+  .lb-btn{top:8px;left:10px;background:rgba(30,5,15,0.82);backdrop-filter:blur(10px);border:1px solid rgba(255,77,109,0.12);border-radius:10px;padding:8px 14px;font-size:11px;letter-spacing:1px;color:#fff;display:flex;align-items:center;gap:6px;pointer-events:auto;cursor:pointer;transition:all 0.2s}
+  .lb-btn:hover{border-color:#ff4d6d;color:#ff4d6d}
+
+  .grid-sel{top:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;pointer-events:auto;transition:top 0.3s;z-index:21}
+  .grid-sel.below{top:48px}
+  .grid-sel .gs{background:rgba(30,5,15,0.8);border:1px solid rgba(255,77,109,0.15);border-radius:8px;padding:5px 12px;color:rgba(255,180,200,0.5);font-family:'Space Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.2s;letter-spacing:1px}
+  .grid-sel .gs:hover{border-color:rgba(255,77,109,0.4);color:rgba(255,77,109,0.7)}
+  .grid-sel .gs.active{background:rgba(255,77,109,0.15);border-color:#ff4d6d;color:#ff4d6d}
+
+  .timer-hud{top:8px;left:50%;transform:translateX(-50%);background:rgba(30,5,15,0.82);backdrop-filter:blur(10px);border:1px solid rgba(255,77,109,0.12);border-radius:10px;padding:6px 16px;font-size:18px;font-weight:700;display:none;align-items:center;gap:6px}
+  .timer-hud .ic{color:#ff4d6d;font-size:16px}
+  .hint-hud{bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,180,200,0.4);letter-spacing:1px;white-space:nowrap;transition:all 0.3s}
+  .hint-hud.bright{color:#ff4d6d;text-shadow:0 0 12px rgba(255,77,109,0.3)}
+  .pinch-label{position:absolute;z-index:20;font-size:13px;font-weight:700;color:#ff4d6d;letter-spacing:2px;text-shadow:0 0 15px rgba(255,77,109,0.4),0 2px 6px rgba(0,0,0,0.7);pointer-events:none;display:none;white-space:nowrap}
+
+  .rst-btn{bottom:12px;left:12px;background:rgba(30,5,15,0.7);border:1px solid rgba(255,77,109,0.15);width:40px;height:40px;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:20px;cursor:pointer;pointer-events:auto;color:#fff;transition:all 0.2s}
+  .rst-btn:hover{border-color:#ff4d6d;color:#ff4d6d}
+  .cap-btn{bottom:12px;right:12px;background:rgba(30,5,15,0.7);border:1px solid rgba(255,77,109,0.15);border-radius:30px;padding:8px 16px;font-size:11px;letter-spacing:1px;cursor:pointer;pointer-events:auto;color:#ffccd5;transition:all 0.2s}
+  .cap-btn:hover{border-color:#ff4d6d;color:#ff4d6d}
+
+  .puzzle-layer{position:absolute;z-index:5;display:none;border-radius:10px;overflow:hidden;border:2px solid rgba(255,77,109,0.2);box-shadow:0 0 40px rgba(255,77,109,0.1)}
+  .puzzle-layer.active{display:grid;gap:0}
+  .p-tile{cursor:pointer;background-color:#1a0a10;background-size:cover;background-repeat:no-repeat;border:1px solid rgba(255,77,109,0.15);transition:transform 0.12s,box-shadow 0.12s,border-color 0.12s;position:relative}
+  .p-tile.picked{border:3px solid #ff4d6d;box-shadow:0 0 25px rgba(255,77,109,0.5);transform:scale(1.06);z-index:6}
+  .p-tile.drop-hover{border:2px solid #ff6b88;box-shadow:0 0 15px rgba(255,77,109,0.3)}
+
+  .flash-ov{position:absolute;inset:0;background:linear-gradient(135deg,#fff,#ffccd5);z-index:30;opacity:0;pointer-events:none}
+  .flash-ov.go{animation:flashGo 0.35s ease-out}
+  @keyframes flashGo{0%{opacity:0.9}100%{opacity:0}}
+  .cd-ov{position:absolute;inset:0;z-index:25;display:none;align-items:center;justify-content:center;background:rgba(26,10,16,0.4)}
+  .cd-ov.on{display:flex}
+  .cd-num{font-size:150px;font-weight:700;color:#ff4d6d;text-shadow:0 0 80px rgba(255,77,109,0.5);animation:cdPop 0.55s ease-out;font-family:'Playfair Display',serif}
+  @keyframes cdPop{0%{transform:scale(3);opacity:0}50%{transform:scale(1);opacity:1}100%{transform:scale(0.93);opacity:0.85}}
+
+  .win-ov{position:absolute;inset:0;z-index:200;background:rgba(26,10,16,0.94);backdrop-filter:blur(20px);flex-direction:column;align-items:center;justify-content:center;gap:12px;display:none}
+  .win-ov h2{font-size:44px;color:#ff4d6d;letter-spacing:8px;text-shadow:0 0 50px rgba(255,77,109,0.4);font-family:'Playfair Display',serif}
+  .win-ov .wt{font-size:52px;color:#fff;font-family:'Playfair Display',serif}
+  .win-ov .wm{font-size:14px;color:rgba(255,180,200,0.5)}
+
+  .name-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .name-row input{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 14px;color:#fff;font-family:'Space Mono',monospace;font-size:13px;width:180px;outline:none;transition:border 0.2s}
+  .name-row input:focus{border-color:#ff4d6d}
+  .name-row input::placeholder{color:rgba(255,255,255,0.3)}
+  .name-row button,.win-ov>.w-btn{background:rgba(255,77,109,0.12);border:1px solid #ff4d6d;border-radius:30px;padding:8px 18px;color:#ff4d6d;font-family:'Space Mono',monospace;font-size:12px;cursor:pointer;letter-spacing:1px;transition:background 0.2s;white-space:nowrap}
+  .name-row button:hover,.win-ov>.w-btn:hover{background:rgba(255,77,109,0.25)}
+  .saved-msg{color:#ff4d6d;font-size:12px;display:none;animation:fadeIn 0.3s}
+
+  .lb-panel{position:absolute;inset:0;z-index:250;background:rgba(26,10,16,0.96);backdrop-filter:blur(24px);display:none;flex-direction:column;align-items:center;padding:24px 16px;overflow-y:auto}
+  .lb-panel.on{display:flex;animation:fadeIn 0.3s}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .lb-panel .lb-close{position:absolute;top:12px;right:16px;background:none;border:1px solid rgba(255,77,109,0.2);border-radius:50%;width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+  .lb-panel .lb-close:hover{border-color:#ff4d6d;color:#ff4d6d}
+  .lb-panel h2{font-size:24px;color:#ff4d6d;letter-spacing:8px;margin-bottom:6px;text-shadow:0 0 30px rgba(255,77,109,0.3);font-family:'Playfair Display',serif}
+  .lb-panel .lb-sub{font-size:10px;color:rgba(255,180,200,0.35);letter-spacing:2px;margin-bottom:16px}
+
+  .lb-filters{display:flex;gap:6px;margin-bottom:16px}
+  .lb-filters button{background:rgba(255,77,109,0.06);border:1px solid rgba(255,77,109,0.15);border-radius:8px;padding:5px 14px;color:rgba(255,180,200,0.5);font-family:'Space Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.2s}
+  .lb-filters button.active{background:rgba(255,77,109,0.15);border-color:#ff4d6d;color:#ff4d6d}
+
+  .lb-table{width:100%;max-width:500px}
+  .lb-header{display:grid;grid-template-columns:40px 1fr 80px 70px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:9px;letter-spacing:2px;color:rgba(255,255,255,0.35);text-transform:uppercase}
+  .lb-row{display:grid;grid-template-columns:40px 1fr 80px 70px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;color:rgba(255,255,255,0.7);align-items:center;transition:background 0.2s}
+  .lb-row:hover{background:rgba(255,77,109,0.04)}
+  .lb-row .rank{color:#ff4d6d;font-weight:700;font-size:14px}
+  .lb-row .rank.gold{color:#ffd700;text-shadow:0 0 8px rgba(255,215,0,0.4)}
+  .lb-row .rank.silver{color:#c0c0c0}
+  .lb-row .rank.bronze{color:#cd7f32}
+  .lb-row .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lb-row .time{color:#ff4d6d;font-weight:700;text-align:right}
+  .lb-row .mvs{color:rgba(255,180,200,0.4);text-align:right;font-size:11px}
+  .lb-empty{color:rgba(255,180,200,0.3);font-size:12px;margin-top:40px;text-align:center;line-height:1.8}
+  .lb-clear{margin-top:20px;background:none;border:1px solid rgba(255,100,100,0.3);border-radius:8px;padding:6px 14px;color:rgba(255,100,100,0.6);font-family:'Space Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.2s;letter-spacing:1px}
+  .lb-clear:hover{border-color:#ff4444;color:#ff4444}
+
+  @keyframes confFall{0%{transform:translateY(0) rotate(0) scale(1);opacity:1}80%{opacity:1}100%{transform:translateY(95vh) rotate(720deg) scale(0.3);opacity:0}}
+  .load-ov{position:absolute;inset:0;z-index:300;background:#1a0a10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+  .load-ov.off{display:none}
+  .load-sp{width:32px;height:32px;border:3px solid rgba(255,77,109,0.1);border-top-color:#ff4d6d;border-radius:50%;animation:spin 0.7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .load-ov p{font-size:11px;color:rgba(255,180,200,0.4);letter-spacing:2px}
+
+  /* Setup screen */
+  .setup-ov{position:absolute;inset:0;z-index:400;background:#1a0a10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px}
+  .setup-ov.off{display:none}
+  .setup-ov h2{font-size:28px;color:#ff4d6d;font-family:'Playfair Display',serif;letter-spacing:6px;text-shadow:0 0 30px rgba(255,77,109,0.3)}
+  .setup-ov p{font-size:11px;color:rgba(255,180,200,0.5);max-width:400px;text-align:center;line-height:1.6}
+  .setup-ov .setup-input{display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:8px}
+  .setup-ov input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,77,109,0.2);border-radius:8px;padding:10px 16px;color:#fff;font-family:'Space Mono',monospace;font-size:12px;width:320px;outline:none;transition:border 0.2s}
+  .setup-ov input:focus{border-color:#ff4d6d}
+  .setup-ov input::placeholder{color:rgba(255,180,200,0.25)}
+  .setup-ov .setup-hint{font-size:9px;color:rgba(255,180,200,0.25);margin-top:2px}
+  .setup-ov button{margin-top:12px;background:rgba(255,77,109,0.15);border:1px solid #ff4d6d;border-radius:30px;padding:12px 32px;color:#ff4d6d;font-family:'Space Mono',monospace;font-size:13px;cursor:pointer;letter-spacing:2px;transition:all 0.2s}
+  .setup-ov button:hover{background:rgba(255,77,109,0.3)}
+  .setup-ov .setup-err{color:#ff4444;font-size:11px;display:none}
+</style>
+</head>
+<body>
+<div class="top-bar"><h1>💕 Love Puzzle 💕</h1><div class="sub">Capture Your Love. Piece It Together.</div></div>
+<div class="stage" id="stage">
+  <!-- Firebase setup screen -->
+  <div class="setup-ov" id="setupOv">
+    <h2>💕 Setup Firebase</h2>
+    <p>To save scores online, paste your Firebase config below. Get it from <a href="https://console.firebase.google.com" target="_blank" style="color:#ff4d6d">Firebase Console</a> → Project Settings → Your Apps → Config.</p>
+    <div class="setup-input">
+      <input id="cfgApiKey" placeholder="apiKey" autocomplete="off">
+      <input id="cfgProjectId" placeholder="projectId" autocomplete="off">
+      <input id="cfgAppId" placeholder="appId (optional)" autocomplete="off">
+      <div class="setup-hint">Only apiKey and projectId are required</div>
+      <div class="setup-err" id="setupErr">Could not connect to Firebase</div>
+      <button id="setupBtn">💖 CONNECT & PLAY</button>
+      <button id="skipBtn" style="background:none;border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.4);font-size:11px;padding:8px 20px;margin-top:4px">SKIP (local scores only)</button>
+    </div>
+  </div>
+
+  <div class="hearts-bg" id="heartsBg"></div>
+  <div class="load-ov" id="loadOv"><div class="load-sp"></div><p id="loadMsg">STARTING CAMERA...</p></div>
+  <video id="vid" autoplay playsinline muted></video>
+  <canvas id="handCanvas"></canvas>
+  <div class="flash-ov" id="flash"></div>
+  <div class="cd-ov" id="cdOv"><div class="cd-num" id="cdNum">3</div></div>
+
+  <div class="hud lb-btn" id="lbBtn">💝 LEADERBOARD</div>
+  <div class="hud grid-sel" id="gridSel">
+    <button class="gs active" data-g="3">3×3</button>
+    <button class="gs" data-g="4">4×4</button>
+    <button class="gs" data-g="5">5×5</button>
+  </div>
+  <div class="hud phase-badge" id="pb">
+    <div class="title" id="phT">PHASE 1: CAPTURE</div>
+    <div class="inst" id="phI">1. Form a frame with <b>two hands</b><br>2. <b>Pinch</b> both hands to SNAP</div>
+  </div>
+  <div class="hud timer-hud" id="tHud"><span class="ic">⏱</span><span id="tVal">0:00</span></div>
+  <div class="hud hint-hud" id="hHud">✋ Use Index+Thumb Pinch</div>
+  <div class="pinch-label" id="pLabel">PINCH TO CAPTURE</div>
+  <div class="hud rst-btn" id="rstBtn">↺</div>
+  <div class="hud cap-btn" id="capBtn">📸 CAPTURE MOMENT</div>
+  <div class="puzzle-layer" id="pzl"></div>
+
+  <div class="win-ov" id="winOv">
+    <h2>💖 Puzzle Complete!</h2>
+    <div class="wt" id="winTime">0:00</div>
+    <div class="wm" id="winMoves">0 moves</div>
+    <div class="name-row" id="nameRow">
+      <input type="text" id="nameInput" placeholder="Your name..." maxlength="20" autocomplete="off">
+      <button id="saveBtn">SAVE</button>
+    </div>
+    <div class="saved-msg" id="savedMsg">✓ Saved to leaderboard!</div>
+    <button class="w-btn" id="paBtn" style="margin-top:8px">💕 PLAY AGAIN</button>
+  </div>
+
+  <div class="lb-panel" id="lbPanel">
+    <button class="lb-close" id="lbClose">✕</button>
+    <h2>💝 LEADERBOARD</h2>
+    <div class="lb-sub">SWEETEST PUZZLE SOLVERS</div>
+    <div class="lb-filters" id="lbFilters">
+      <button class="active" data-f="all">ALL</button>
+      <button data-f="3">3×3</button>
+      <button data-f="4">4×4</button>
+      <button data-f="5">5×5</button>
+    </div>
+    <div class="lb-table" id="lbTable">
+      <div class="lb-header"><div>#</div><div>NAME</div><div style="text-align:right">TIME</div><div style="text-align:right">MOVES</div></div>
+      <div id="lbRows"></div>
+    </div>
+    <div class="lb-empty" id="lbEmpty">No scores yet!<br>Solve a puzzle to get on the board. 💕</div>
+    <button class="lb-clear" id="lbClearBtn">CLEAR ALL SCORES</button>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat for simplicity) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script type="module">
+import { HandLandmarker, FilesetResolver } from
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
+const $=id=>document.getElementById(id);
+const vid=$('vid'),hC=$('handCanvas'),ctx=hC.getContext('2d'),stg=$('stage'),pzl=$('pzl');
+
+let hl=null,lastVT=-1,phase='capture',gridSize=3;
+let capDataURL=null,capW=0,capH=0;
+let tiles=[],moves=0,tInt=null,t0=0;
+let framF=0,pinchBF=0,fistF=0,pinchHF=0,pinchRF=0,lastPP=null,pickedT=null,tapSel=null;
+let lastWinSecs=0;
+let playerName=localStorage.getItem('lp_name')||'';
+let db=null; // Firestore instance
+let useFirebase=false;
+
+// ===== FIREBASE SETUP =====
+function initFirebase(config){
+  try{
+    const app=firebase.initializeApp({
+      apiKey:config.apiKey,
+      projectId:config.projectId,
+      appId:config.appId||'auto'
+    });
+    db=firebase.firestore();
+    useFirebase=true;
+    // Save config for next time
+    localStorage.setItem('lp_firebase',JSON.stringify(config));
+    console.log('🔥 Firebase connected to project:',config.projectId);
+    return true;
+  }catch(e){
+    console.error('Firebase init failed:',e);
+    return false;
+  }
+}
+
+// Try loading saved config
+const savedCfg=localStorage.getItem('lp_firebase');
+if(savedCfg){
+  try{
+    const cfg=JSON.parse(savedCfg);
+    if(cfg.apiKey&&cfg.projectId){
+      initFirebase(cfg);
+      $('setupOv').classList.add('off');
+    }
+  }catch(e){}
+}
+
+$('setupBtn').addEventListener('click',async()=>{
+  const apiKey=$('cfgApiKey').value.trim();
+  const projectId=$('cfgProjectId').value.trim();
+  const appId=$('cfgAppId').value.trim();
+
+  if(!apiKey||!projectId){
+    $('setupErr').textContent='apiKey and projectId are required';
+    $('setupErr').style.display='block';
+    return;
+  }
+
+  $('setupBtn').textContent='CONNECTING...';
+  const ok=initFirebase({apiKey,projectId,appId});
+
+  if(ok){
+    // Test connection
+    try{
+      await db.collection('scores').limit(1).get();
+      $('setupOv').classList.add('off');
+    }catch(e){
+      $('setupErr').textContent='Connected but Firestore access failed. Check Firestore rules.';
+      $('setupErr').style.display='block';
+      $('setupBtn').textContent='💖 CONNECT & PLAY';
+    }
+  }else{
+    $('setupErr').textContent='Invalid Firebase config';
+    $('setupErr').style.display='block';
+    $('setupBtn').textContent='💖 CONNECT & PLAY';
+  }
+});
+
+$('skipBtn').addEventListener('click',()=>{
+  useFirebase=false;
+  $('setupOv').classList.add('off');
+});
+
+// ===== LEADERBOARD (Firebase Firestore) =====
+async function saveScore(name,seconds,moveCount,grid){
+  const entry={
+    name:name.trim()||'Anonymous',
+    time_seconds:seconds,
+    moves:moveCount,
+    grid_size:grid,
+    created_at:new Date().toISOString()
+  };
+  localStorage.setItem('lp_name',name.trim());
+
+  if(useFirebase&&db){
+    try{
+      await db.collection('scores').add(entry);
+      // Get rank
+      const snap=await db.collection('scores')
+        .where('grid_size','==',grid)
+        .where('time_seconds','<',seconds)
+        .get();
+      return{success:true,rank:snap.size+1};
+    }catch(e){
+      console.error('Firebase save failed:',e);
+      saveLocal(entry);
+      return{success:true,rank:null};
+    }
+  }else{
+    saveLocal(entry);
+    return{success:true,rank:getLocalRank(seconds,grid)};
+  }
+}
+
+function saveLocal(entry){
+  const scores=JSON.parse(localStorage.getItem('lp_scores')||'[]');
+  scores.push(entry);
+  scores.sort((a,b)=>a.time_seconds-b.time_seconds);
+  if(scores.length>100)scores.length=100;
+  localStorage.setItem('lp_scores',JSON.stringify(scores));
+}
+
+function getLocalRank(seconds,grid){
+  const scores=JSON.parse(localStorage.getItem('lp_scores')||'[]');
+  const filtered=scores.filter(s=>s.grid_size===grid);
+  return filtered.filter(s=>s.time_seconds<seconds).length+1;
+}
+
+async function clearScores(){
+  if(useFirebase&&db){
+    try{
+      const snap=await db.collection('scores').get();
+      const batch=db.batch();
+      snap.docs.forEach(doc=>batch.delete(doc.ref));
+      await batch.commit();
+    }catch(e){console.error('Clear failed:',e)}
+  }
+  localStorage.removeItem('lp_scores');
+  await renderLeaderboard();
+}
+
+let lbFilter='all';
+
+async function renderLeaderboard(){
+  let scores=[];
+
+  if(useFirebase&&db){
+    try{
+      let query=db.collection('scores').orderBy('time_seconds','asc').limit(50);
+      if(lbFilter!=='all')query=db.collection('scores').where('grid_size','==',parseInt(lbFilter)).orderBy('time_seconds','asc').limit(50);
+      const snap=await query.get();
+      scores=snap.docs.map(d=>d.data());
+    }catch(e){
+      console.error('Firestore query failed:',e);
+      scores=getLocalScores();
+    }
+  }else{
+    scores=getLocalScores();
+  }
+
+  const rows=$('lbRows');
+  rows.innerHTML='';
+  $('lbEmpty').style.display=scores.length?'none':'block';
+
+  scores.forEach((s,i)=>{
+    const row=document.createElement('div');
+    row.className='lb-row';
+    const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const m=Math.floor(s.time_seconds/60);
+    const sec=s.time_seconds%60;
+    const timeStr=`${m}:${sec.toString().padStart(2,'0')}`;
+    const gridLabel=s.grid_size+'×'+s.grid_size;
+    const dateStr=s.created_at?new Date(s.created_at).toLocaleDateString():'';
+
+    row.innerHTML=`
+      <div class="rank ${rankClass}">${i+1}</div>
+      <div class="name">${escHtml(s.name)} <span style="opacity:0.3;font-size:9px">${gridLabel}</span> <span style="opacity:0.2;font-size:8px">${dateStr}</span></div>
+      <div class="time">${timeStr}</div>
+      <div class="mvs">${s.moves}</div>
+    `;
+    rows.appendChild(row);
+  });
+}
+
+function getLocalScores(){
+  const scores=JSON.parse(localStorage.getItem('lp_scores')||'[]');
+  const filtered=lbFilter==='all'?scores:scores.filter(s=>s.grid_size===parseInt(lbFilter));
+  return filtered.sort((a,b)=>a.time_seconds-b.time_seconds).slice(0,50);
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+async function openLeaderboard(){await renderLeaderboard();$('lbPanel').classList.add('on')}
+function closeLeaderboard(){$('lbPanel').classList.remove('on')}
+
+// ===== EVENT HANDLERS =====
+$('capBtn').addEventListener('click',()=>{if(phase==='capture')triggerCapture(null)});
+$('rstBtn').addEventListener('click',()=>resetGame());
+$('paBtn').addEventListener('click',()=>resetGame());
+$('lbBtn').addEventListener('click',()=>openLeaderboard());
+$('lbClose').addEventListener('click',()=>closeLeaderboard());
+$('lbClearBtn').addEventListener('click',async()=>{if(confirm('Clear all leaderboard scores?'))await clearScores()});
+
+$('gridSel').addEventListener('click',e=>{
+  const btn=e.target.closest('.gs');if(!btn)return;
+  const ns=parseInt(btn.dataset.g);if(ns===gridSize)return;
+  gridSize=ns;
+  $('gridSel').querySelectorAll('.gs').forEach(b=>b.classList.toggle('active',b===btn));
+  if(phase==='puzzle'&&capDataURL){moves=0;pickedT=null;tapSel=null;buildPuzzle();if(tInt)clearInterval(tInt);startTimer()}
+});
+
+$('saveBtn').addEventListener('click',async()=>{
+  const name=$('nameInput').value.trim()||'Anonymous';
+  $('saveBtn').textContent='SAVING...';
+  const result=await saveScore(name,lastWinSecs,moves,gridSize);
+  playerName=name;
+  $('nameRow').style.display='none';
+  if(result&&result.rank){
+    $('savedMsg').textContent=`💖 Saved! You're #${result.rank} on the ${gridSize}×${gridSize} board!`;
+  }else{
+    $('savedMsg').textContent='💖 Saved to leaderboard!';
+  }
+  $('savedMsg').style.display='block';
+  $('saveBtn').textContent='SAVE';
+});
+
+$('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('saveBtn').click()});
+
+$('lbFilters').addEventListener('click',async e=>{
+  const btn=e.target.closest('button');if(!btn)return;
+  lbFilter=btn.dataset.f;
+  $('lbFilters').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===btn));
+  await renderLeaderboard();
+});
+
+// ===== INIT =====
+async function init(){
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
+    vid.srcObject=s;await new Promise(r=>{vid.onloadedmetadata=()=>vid.play().then(r)});
+    hC.width=vid.videoWidth;hC.height=vid.videoHeight;
+  }catch(e){$('loadMsg').textContent='CAMERA ACCESS REQUIRED';return}
+
+  $('loadMsg').textContent='LOADING HAND TRACKING...';
+  try{
+    const v=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm");
+    hl=await HandLandmarker.createFromOptions(v,{
+      baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},
+      runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:0.5,minHandPresenceConfidence:0.5,minTrackingConfidence:0.5
+    });
+  }catch(e){hl=null}
+  $('loadOv').classList.add('off');
+  requestAnimationFrame(loop);
+}
+
+// ===== LOOP =====
+function loop(){
+  const now=performance.now();
+  if(hl&&vid.readyState>=2&&vid.currentTime!==lastVT){
+    lastVT=vid.currentTime;
+    try{
+      const r=hl.detectForVideo(vid,now);
+      ctx.clearRect(0,0,hC.width,hC.height);
+      if(r&&r.landmarks&&r.landmarks.length>0){
+        r.landmarks.forEach(lm=>drawSkel(lm));
+        if(phase==='capture')capGest(r);
+        else if(phase==='puzzle')pzlGest(r);
+      }else{
+        if(phase==='capture'){framF=Math.max(0,framF-2);pinchBF=0;$('pLabel').style.display='none';hint('✋ Show both hands to frame',0)}
+        if(phase==='puzzle'){fistF=0;pinchHF=0;pinchRF++;if(pinchRF>8&&pickedT!==null)dropT()}
+      }
+    }catch(e){}
+  }
+  requestAnimationFrame(loop);
+}
+
+function drawSkel(lm){
+  const w=hC.width,h=hC.height;
+  const cn=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  ctx.lineWidth=3;ctx.lineCap='round';ctx.strokeStyle='rgba(255,200,210,0.7)';
+  cn.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(lm[a].x*w,lm[a].y*h);ctx.lineTo(lm[b].x*w,lm[b].y*h);ctx.stroke()});
+  const tp=new Set([4,8,12,16,20]);
+  lm.forEach((p,i)=>{const x=p.x*w,y=p.y*h,t=tp.has(i);if(t){ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle='rgba(255,77,109,0.25)';ctx.fill()}ctx.beginPath();ctx.arc(x,y,t?5:3,0,Math.PI*2);ctx.fillStyle=t?'#ff4d6d':'#ffccd5';ctx.fill()});
+}
+
+// CAPTURE GESTURES
+function capGest(r){
+  const h=r.landmarks,w=hC.width,ht=hC.height;
+  if(h.length>=2){
+    if(isOpen(h[0])&&isOpen(h[1])){framF=Math.min(framF+1,50);pinchBF=0}
+    if(framF>=3){const rc=fRect(h[0],h[1],w,ht);drawFR(rc);if(framF>=12){const sr=stg.getBoundingClientRect();$('pLabel').style.left=(sr.width-(rc.x+rc.w/2)*(sr.width/w))+'px';$('pLabel').style.top=(rc.y*(sr.height/ht)-25)+'px';$('pLabel').style.display='block';hint('✊ Pinch both hands!',1)}}
+    if(isPinch(h[0])&&isPinch(h[1])&&framF>=12){pinchBF++;if(pinchBF>=10){$('pLabel').style.display='none';triggerCapture(fRect(h[0],h[1],w,ht))}}else{pinchBF=Math.max(0,pinchBF-1)}
+  }else{framF=Math.max(0,framF-1);pinchBF=0;hint('✋ Show BOTH hands',0);$('pLabel').style.display='none'}
+}
+function fRect(a,b,w,h){let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;[a,b].forEach(hd=>{[0,4,8,12,16,20].forEach(i=>{x1=Math.min(x1,hd[i].x*w);y1=Math.min(y1,hd[i].y*h);x2=Math.max(x2,hd[i].x*w);y2=Math.max(y2,hd[i].y*h)})});const p=20;return{x:x1+p,y:y1+p,w:(x2-x1)-p*2,h:(y2-y1)-p*2}}
+function drawFR(r){ctx.strokeStyle='#ff4d6d';ctx.lineWidth=3;ctx.setLineDash([]);ctx.strokeRect(r.x,r.y,r.w,r.h);const c=18;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(r.x,r.y+c);ctx.lineTo(r.x,r.y);ctx.lineTo(r.x+c,r.y);ctx.stroke();ctx.beginPath();ctx.moveTo(r.x+r.w-c,r.y);ctx.lineTo(r.x+r.w,r.y);ctx.lineTo(r.x+r.w,r.y+c);ctx.stroke();ctx.beginPath();ctx.moveTo(r.x,r.y+r.h-c);ctx.lineTo(r.x,r.y+r.h);ctx.lineTo(r.x+c,r.y+r.h);ctx.stroke();ctx.beginPath();ctx.moveTo(r.x+r.w-c,r.y+r.h);ctx.lineTo(r.x+r.w,r.y+r.h);ctx.lineTo(r.x+r.w,r.y+r.h-c);ctx.stroke()}
+
+// PUZZLE GESTURES
+function pzlGest(r){
+  const h=r.landmarks;if(!h.length)return;const hd=h[0],w=hC.width,ht=hC.height;
+  if(isFist(hd)){fistF++;if(fistF>=30){fistF=0;resetGame();return}const cx=hd[9].x*w,cy=hd[9].y*ht,p=fistF/30;ctx.beginPath();ctx.arc(cx,cy,40,0,Math.PI*2);ctx.strokeStyle='rgba(255,100,100,0.15)';ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,40,-Math.PI/2,-Math.PI/2+p*Math.PI*2);ctx.strokeStyle='#ff4444';ctx.lineWidth=4;ctx.lineCap='round';ctx.stroke();return}else{fistF=Math.max(0,fistF-2)}
+  const pi=isPinch(hd),px=(hd[4].x+hd[8].x)/2*w,py=(hd[4].y+hd[8].y)/2*ht;
+  if(pi){pinchHF++;pinchRF=0;lastPP={x:px,y:py};ctx.beginPath();ctx.arc(px,py,14,0,Math.PI*2);ctx.fillStyle='#ff4d6d';ctx.fill();if(pickedT===null&&pinchHF>=6){const i=tileAt(px,py);if(i!==null)pickT(i)}if(pickedT!==null){const hv=tileAt(px,py);pzl.querySelectorAll('.p-tile').forEach((e,i)=>{e.classList.toggle('drop-hover',i===hv&&i!==pickedT)})}}
+  else{pinchRF++;pinchHF=0;if(pickedT!==null&&pinchRF>=4&&lastPP){const d=tileAt(lastPP.x,lastPP.y);if(d!==null&&d!==pickedT)doSwap(pickedT,d);dropT()}}
+}
+function pickT(i){pickedT=i;const e=pzl.querySelectorAll('.p-tile');if(e[i])e[i].classList.add('picked')}
+function dropT(){const e=pzl.querySelectorAll('.p-tile');if(pickedT!==null&&e[pickedT])e[pickedT].classList.remove('picked');e.forEach(x=>x.classList.remove('drop-hover'));pickedT=null;pinchHF=0}
+function tileAt(cx,cy){const sr=stg.getBoundingClientRect(),cw=hC.width,ch=hC.height,sx=sr.width-(cx/cw)*sr.width,sy=(cy/ch)*sr.height,pr=pzl.getBoundingClientRect(),rx=sx-(pr.left-sr.left),ry=sy-(pr.top-sr.top);if(rx<0||ry<0||rx>pr.width||ry>pr.height)return null;const col=Math.floor(rx/(pr.width/gridSize)),row=Math.floor(ry/(pr.height/gridSize));if(col<0||col>=gridSize||row<0||row>=gridSize)return null;return row*gridSize+col}
+
+function isOpen(l){let e=0;if(l[8].y<l[6].y)e++;if(l[12].y<l[10].y)e++;if(l[16].y<l[14].y)e++;if(l[20].y<l[18].y)e++;return e>=3}
+function isPinch(l){const d=Math.sqrt((l[4].x-l[8].x)**2+(l[4].y-l[8].y)**2);return d<0.06}
+function isFist(l){let c=0;if(l[8].y>l[6].y)c++;if(l[12].y>l[10].y)c++;if(l[16].y>l[14].y)c++;if(l[20].y>l[18].y)c++;return c>=4}
+function hint(t,b){const e=$('hHud');e.textContent=t;e.classList.toggle('bright',!!b)}
+
+// CAPTURE
+async function triggerCapture(fr){
+  if(phase!=='capture')return;
+  phase='countdown';
+  const ov=$('cdOv'),nm=$('cdNum');ov.classList.add('on');
+  for(let i=3;i>=1;i--){nm.textContent=i;nm.style.animation='none';void nm.offsetHeight;nm.style.animation='cdPop 0.55s ease-out';await slp(850)}
+  ov.classList.remove('on');
+  $('flash').classList.add('go');setTimeout(()=>$('flash').classList.remove('go'),350);
+  const c=document.createElement('canvas');
+  c.width=vid.videoWidth;c.height=vid.videoHeight;c.getContext('2d').drawImage(vid,0,0,c.width,c.height);
+  const mc=document.createElement('canvas');mc.width=c.width;mc.height=c.height;
+  const mx=mc.getContext('2d');mx.translate(mc.width,0);mx.scale(-1,1);mx.drawImage(c,0,0);
+  capDataURL=mc.toDataURL('image/jpeg',0.92);capW=mc.width;capH=mc.height;
+  setTimeout(startPuzzle,400);
+}
+
+// PUZZLE
+function startPuzzle(){
+  phase='puzzle';moves=0;pickedT=null;tapSel=null;
+  $('phT').textContent='PHASE 2: SOLVE';
+  vid.classList.add('blurred');
+  $('phI').innerHTML='1. <b>Pinch</b> to Pick Up<br>2. <b>Drag & Drop</b> to Swap<br><b style="color:#ff4d6d">Hold Fist to Reset</b>';
+  $('tHud').style.display='flex';$('rstBtn').style.display='flex';
+  $('gridSel').classList.add('below');
+  $('capBtn').style.display='none';$('pLabel').style.display='none';
+  hint('✌ Use Index+Thumb Pinch',0);
+  buildPuzzle();startTimer();
+}
+
+function buildPuzzle(){
+  pzl.innerHTML='';
+  const rect=stg.getBoundingClientRect();
+  const maxS=Math.min(rect.width,rect.height)*0.65;
+  const tS=Math.floor(maxS/gridSize);const pxS=tS*gridSize;
+  pzl.style.width=pxS+'px';pzl.style.height=pxS+'px';
+  pzl.style.gridTemplateColumns=`repeat(${gridSize},${tS}px)`;
+  pzl.style.gridTemplateRows=`repeat(${gridSize},${tS}px)`;
+  pzl.style.left=`${(rect.width-pxS)/2}px`;pzl.style.top=`${(rect.height-pxS)/2}px`;
+  pzl.classList.add('active');
+  const n=gridSize*gridSize;tiles=[];for(let i=0;i<n;i++)tiles.push(i);
+  do{for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[tiles[i],tiles[j]]=[tiles[j],tiles[i]]}}while(tiles.every((v,i)=>v===i));
+  renderTiles(tS);
+}
+
+function renderTiles(tS){
+  pzl.innerHTML='';
+  const cropS=Math.min(capW,capH),offX=(capW-cropS)/2,offY=(capH-cropS)/2;
+  const bgFullW=pzl.offsetWidth*(capW/cropS),bgFullH=pzl.offsetHeight*(capH/cropS);
+  const bgOffX=-(offX/capW)*bgFullW,bgOffY=-(offY/capH)*bgFullH;
+  tiles.forEach((srcIdx,posIdx)=>{
+    const el=document.createElement('div');el.className='p-tile';
+    el.style.width=tS+'px';el.style.height=tS+'px';
+    const srcRow=Math.floor(srcIdx/gridSize),srcCol=srcIdx%gridSize;
+    el.style.backgroundImage=`url(${capDataURL})`;
+    el.style.backgroundSize=`${bgFullW}px ${bgFullH}px`;
+    el.style.backgroundPosition=`${bgOffX-srcCol*tS}px ${bgOffY-srcRow*tS}px`;
+    el.addEventListener('click',()=>tapTile(posIdx));
+    pzl.appendChild(el);
+  });
+}
+
+function tapTile(idx){
+  if(phase!=='puzzle')return;
+  const els=pzl.querySelectorAll('.p-tile');
+  if(tapSel===null){tapSel=idx;els[idx].classList.add('picked')}
+  else if(tapSel===idx){els[idx].classList.remove('picked');tapSel=null}
+  else{doSwap(tapSel,idx);tapSel=null}
+}
+
+function doSwap(a,b){
+  [tiles[a],tiles[b]]=[tiles[b],tiles[a]];moves++;
+  const els=pzl.querySelectorAll('.p-tile');
+  const bgA=els[a].style.backgroundPosition,bgB=els[b].style.backgroundPosition;
+  els[a].style.backgroundPosition=bgB;els[b].style.backgroundPosition=bgA;
+  els[a].classList.remove('picked');els[b].classList.remove('picked');
+  els.forEach(e=>e.classList.remove('drop-hover'));
+  if(tiles.every((v,i)=>v===i)){phase='won';setTimeout(showWin,400)}
+}
+
+function showWin(){
+  if(tInt){clearInterval(tInt);tInt=null}
+  lastWinSecs=Math.floor((Date.now()-t0)/1000);
+  const m=Math.floor(lastWinSecs/60),s=lastWinSecs%60;
+  $('winTime').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+  $('winMoves').textContent=`${moves} moves`;
+  $('nameRow').style.display='flex';
+  $('savedMsg').style.display='none';
+  $('nameInput').value=playerName;
+  const w=$('winOv');w.style.display='flex';w.style.zIndex='200';w.style.opacity='1';w.style.pointerEvents='auto';
+
+  const hearts=['💖','💕','💗','💓','❤️','🩷','✨'];
+  const colors=['#ff4d6d','#ff6b88','#ffccd5','#fff','#ff85a1','#ffb3c6'];
+  for(let i=0;i<60;i++){
+    const c=document.createElement('div');
+    const isHeart=Math.random()>0.4;
+    if(isHeart){c.textContent=hearts[Math.floor(Math.random()*hearts.length)];c.style.cssText=`position:absolute;z-index:300;font-size:${14+Math.random()*24}px;left:${Math.random()*100}%;top:-30px;pointer-events:none;animation:confFall ${2+Math.random()*2.5}s ease-out forwards;animation-delay:${Math.random()*0.6}s`}
+    else{c.style.cssText=`position:absolute;z-index:300;width:${4+Math.random()*8}px;height:${4+Math.random()*8}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:50%;left:${Math.random()*100}%;top:-10px;pointer-events:none;animation:confFall ${1.5+Math.random()*2}s ease-out forwards;animation-delay:${Math.random()*0.5}s`}
+    stg.appendChild(c);setTimeout(()=>c.remove(),5000);
+  }
+}
+
+function startTimer(){if(tInt)clearInterval(tInt);t0=Date.now();tInt=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$('tVal').textContent=`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`},250)}
+
+function resetGame(){
+  phase='capture';capDataURL=null;tiles=[];pickedT=null;tapSel=null;moves=0;
+  framF=0;pinchBF=0;fistF=0;pinchHF=0;pinchRF=0;lastPP=null;lastVT=-1;
+  if(tInt){clearInterval(tInt);tInt=null}
+  pzl.classList.remove('active');pzl.innerHTML='';
+  vid.classList.remove('blurred');
+  const w=$('winOv');w.style.display='none';w.style.opacity='';w.style.pointerEvents='';
+  $('tHud').style.display='none';$('rstBtn').style.display='none';
+  $('gridSel').classList.remove('below');
+  $('capBtn').style.display='block';$('pLabel').style.display='none';
+  $('phT').textContent='PHASE 1: CAPTURE';
+  $('phI').innerHTML='1. Form a frame with <b>two hands</b><br>2. <b>Pinch</b> both hands to SNAP';
+  hint('✋ Use Index+Thumb Pinch',0);
+}
+
+function slp(ms){return new Promise(r=>setTimeout(r,ms))}
+
+function spawnHearts(){
+  const bg=$('heartsBg');
+  const emojis=['💕','💗','💓','🩷','❤️','💖'];
+  setInterval(()=>{
+    const h=document.createElement('div');
+    h.className='heart-float';
+    h.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    h.style.left=Math.random()*100+'%';
+    h.style.fontSize=(14+Math.random()*20)+'px';
+    h.style.animationDuration=(8+Math.random()*12)+'s';
+    bg.appendChild(h);
+    setTimeout(()=>h.remove(),20000);
+  },800);
+}
+spawnHearts();
+init();
+</script>
+</body>
+</html>
