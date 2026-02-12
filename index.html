@@ -177,8 +177,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script type="module">
-import { HandLandmarker, FilesetResolver } from
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+let HandLandmarker, FilesetResolver;
+try {
+  const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs');
+  HandLandmarker = vision.HandLandmarker;
+  FilesetResolver = vision.FilesetResolver;
+} catch(e) {
+  console.error('Failed to load MediaPipe:', e);
+}
 
 const $=id=>document.getElementById(id);
 const vid=$('vid'),hC=$('handCanvas'),ctx=hC.getContext('2d'),stg=$('stage'),pzl=$('pzl');
@@ -189,14 +195,14 @@ let tiles=[],moves=0,tInt=null,t0=0;
 let framF=0,pinchBF=0,fistF=0,pinchHF=0,pinchRF=0,lastPP=null,pickedT=null,tapSel=null;
 let lastWinSecs=0;
 let playerName=localStorage.getItem('lp_name')||'';
-let db=null; // Firestore instance
+let db=null;
 let useFirebase=false;
 
 // ===== FIREBASE CONFIG =====
 // ✏️ PASTE YOUR FIREBASE CONFIG HERE (get it from Firebase Console → Project Settings → Your Apps)
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAp4-l96pbDYuGc6r7uORTiUzq8LRR81Ys",
-  projectId: "rin-puzzle"
+  apiKey: "YOUR_API_KEY_HERE",
+  projectId: "YOUR_PROJECT_ID_HERE"
 };
 
 // Auto-connect on load
@@ -373,7 +379,18 @@ async function init(){
     const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
     vid.srcObject=s;await new Promise(r=>{vid.onloadedmetadata=()=>vid.play().then(r)});
     hC.width=vid.videoWidth;hC.height=vid.videoHeight;
-  }catch(e){$('loadMsg').textContent='CAMERA ACCESS REQUIRED';return}
+  }catch(e){
+    console.error('Camera error:',e);
+    $('loadMsg').textContent='CAMERA ACCESS REQUIRED';
+    return;
+  }
+
+  if(!HandLandmarker||!FilesetResolver){
+    console.warn('MediaPipe not loaded — hand tracking disabled');
+    $('loadOv').classList.add('off');
+    requestAnimationFrame(loop);
+    return;
+  }
 
   $('loadMsg').textContent='LOADING HAND TRACKING...';
   try{
@@ -382,7 +399,7 @@ async function init(){
       baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},
       runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:0.5,minHandPresenceConfidence:0.5,minTrackingConfidence:0.5
     });
-  }catch(e){hl=null}
+  }catch(e){console.error('Hand tracking init error:',e);hl=null}
   $('loadOv').classList.add('off');
   requestAnimationFrame(loop);
 }
