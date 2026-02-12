@@ -406,14 +406,15 @@ async function openLeaderboard(){await renderLeaderboard();$('lbPanel').classLis
 function closeLeaderboard(){$('lbPanel').classList.remove('on')}
 
 // ===== EVENT HANDLERS =====
-$('capBtn').addEventListener('click',()=>{if(phase==='capture')triggerCapture(null)});
-$('rstBtn').addEventListener('click',()=>resetGame());
-$('paBtn').addEventListener('click',()=>resetGame());
-$('lbBtn').addEventListener('click',()=>openLeaderboard());
-$('lbClose').addEventListener('click',()=>closeLeaderboard());
-$('lbClearBtn').addEventListener('click',async()=>{if(confirm('Clear all leaderboard scores?'))await clearScores()});
+function on(id,evt,fn){const el=$(id);if(el)el.addEventListener(evt,fn);else console.warn('Element not found:',id)}
+on('capBtn','click',()=>{if(phase==='capture')triggerCapture(null)});
+on('rstBtn','click',()=>resetGame());
+on('paBtn','click',()=>resetGame());
+on('lbBtn','click',()=>openLeaderboard());
+on('lbClose','click',()=>closeLeaderboard());
+on('lbClearBtn','click',async()=>{if(confirm('Clear all leaderboard scores?'))await clearScores()});
 
-$('gridSel').addEventListener('click',e=>{
+on('gridSel','click',e=>{
   const btn=e.target.closest('.gs');if(!btn)return;
   const ns=parseInt(btn.dataset.g);if(ns===gridSize)return;
   gridSize=ns;
@@ -421,7 +422,7 @@ $('gridSel').addEventListener('click',e=>{
   if(phase==='puzzle'&&capDataURL){moves=0;pickedT=null;tapSel=null;buildPuzzle();if(tInt)clearInterval(tInt);startTimer()}
 });
 
-$('saveBtn').addEventListener('click',async()=>{
+on('saveBtn','click',async()=>{
   const name=$('nameInput').value.trim()||'Anonymous';
   $('saveBtn').textContent='SAVING...';
   const result=await saveScore(name,lastWinSecs,moves,gridSize);
@@ -436,9 +437,9 @@ $('saveBtn').addEventListener('click',async()=>{
   $('saveBtn').textContent='SAVE';
 });
 
-$('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('saveBtn').click()});
+on('nameInput','keydown',e=>{if(e.key==='Enter'){const sb=$('saveBtn');if(sb)sb.click()}});
 
-$('lbFilters').addEventListener('click',async e=>{
+on('lbFilters','click',async e=>{
   const btn=e.target.closest('button');if(!btn)return;
   lbFilter=btn.dataset.f;
   $('lbFilters').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===btn));
