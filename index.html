@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Permissions-Policy" content="camera=(self)">
 <title>Rin-Pizzle 💕</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400;700&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{background:#1a0a10;color:#fff;font-family:'Space Mono',monospace;height:100vh;width:100vw;overflow:hidden;display:flex;flex-direction:column;align-items:center;user-select:none;padding:0 24px 24px}
 
   .top-bar{width:100%;text-align:center;padding:10px 0 6px;z-index:50}
@@ -51,7 +51,7 @@
 
   .puzzle-layer{position:absolute;z-index:5;display:none;border-radius:10px;overflow:hidden;border:2px solid rgba(255,77,109,0.2);box-shadow:0 0 40px rgba(255,77,109,0.1)}
   .puzzle-layer.active{display:grid;gap:0}
-  .p-tile{cursor:pointer;background-color:#1a0a10;background-size:cover;background-repeat:no-repeat;border:1px solid rgba(255,77,109,0.15);transition:transform 0.12s,box-shadow 0.12s,border-color 0.12s;position:relative}
+  .p-tile{cursor:pointer;background-color:#1a0a10;background-size:cover;background-repeat:no-repeat;border:1px solid rgba(255,77,109,0.15);transition:transform 0.12s,box-shadow 0.12s,border-color 0.12s;position:relative;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
   .p-tile.picked{border:3px solid #ff4d6d;box-shadow:0 0 25px rgba(255,77,109,0.5);transform:scale(1.06);z-index:6}
   .p-tile.drop-hover{border:2px solid #ff6b88;box-shadow:0 0 15px rgba(255,77,109,0.3)}
 
@@ -111,6 +111,76 @@
   .load-ov p{font-size:11px;color:rgba(255,180,200,0.4);letter-spacing:2px}
 
   /* Setup screen - removed, config is hardcoded */
+
+  /* ===== MOBILE RESPONSIVE ===== */
+  @media(max-width:600px){
+    body{padding:0 8px 8px}
+    .top-bar{padding:6px 0 4px}
+    .top-bar h1{font-size:16px;letter-spacing:6px}
+    .top-bar .sub{font-size:8px;letter-spacing:1px}
+
+    .stage{border-radius:12px}
+    video{border-radius:12px}
+
+    .phase-badge{top:6px;right:6px;padding:6px 8px;max-width:160px;border-radius:8px}
+    .phase-badge .title{font-size:8px;letter-spacing:1.5px;margin-bottom:2px}
+    .phase-badge .inst{font-size:8px;line-height:1.4}
+
+    .lb-btn{top:6px;left:6px;padding:6px 10px;font-size:9px;border-radius:8px;gap:4px}
+
+    .grid-sel{top:6px;gap:3px}
+    .grid-sel.below{top:42px}
+    .grid-sel .gs{padding:4px 9px;font-size:9px;border-radius:6px}
+
+    .timer-hud{top:6px;padding:4px 12px;font-size:15px;border-radius:8px}
+
+    .hint-hud{bottom:8px;font-size:9px}
+    .pinch-label{font-size:11px}
+
+    .rst-btn{bottom:8px;left:8px;width:34px;height:34px;font-size:17px}
+    .cap-btn{bottom:8px;right:8px;padding:6px 12px;font-size:10px;border-radius:24px}
+
+    .puzzle-layer{border-radius:8px}
+
+    .cd-num{font-size:90px}
+
+    .win-ov{gap:8px;padding:16px}
+    .win-ov h2{font-size:26px;letter-spacing:4px}
+    .win-ov .wt{font-size:36px}
+    .win-ov .wm{font-size:12px}
+    .name-row{flex-direction:column;gap:6px}
+    .name-row input{width:200px;font-size:12px;padding:8px 12px}
+    .name-row button,.win-ov>.w-btn{padding:8px 16px;font-size:11px}
+
+    .lb-panel{padding:16px 10px;border-radius:12px}
+    .lb-panel h2{font-size:18px;letter-spacing:5px}
+    .lb-panel .lb-sub{font-size:8px;margin-bottom:10px}
+    .lb-panel .lb-close{top:8px;right:10px;width:30px;height:30px;font-size:15px}
+    .lb-filters{gap:4px;margin-bottom:10px}
+    .lb-filters button{padding:4px 10px;font-size:9px}
+    .lb-header{font-size:7px;padding:6px 8px;grid-template-columns:30px 1fr 60px 50px}
+    .lb-row{font-size:11px;padding:8px;grid-template-columns:30px 1fr 60px 50px}
+    .lb-row .rank{font-size:12px}
+    .lb-row .mvs{font-size:9px}
+
+    .load-ov{border-radius:12px}
+    .load-ov p{font-size:9px}
+  }
+
+  /* Extra small phones */
+  @media(max-width:380px){
+    body{padding:0 4px 4px}
+    .top-bar h1{font-size:14px;letter-spacing:4px}
+    .phase-badge{max-width:130px}
+    .lb-btn{padding:5px 8px;font-size:8px}
+    .win-ov h2{font-size:22px}
+    .win-ov .wt{font-size:30px}
+  }
+
+  /* Fix mobile viewport height (address bar issue) */
+  @supports(height:100dvh){
+    body{height:100dvh}
+  }
 </style>
 </head>
 <body>
@@ -169,7 +239,7 @@
       <div id="lbRows"></div>
     </div>
     <div class="lb-empty" id="lbEmpty">No scores yet!<br>Solve a puzzle to get on the board. 💕</div>
-    <button class="lb-clear" id="lbClearBtn">CLEAR ALL SCORES</button>
+    <!-- <button class="lb-clear" id="lbClearBtn">CLEAR ALL SCORES</button> -->
   </div>
 </div>
 
@@ -503,7 +573,8 @@ function startPuzzle(){
 function buildPuzzle(){
   pzl.innerHTML='';
   const rect=stg.getBoundingClientRect();
-  const maxS=Math.min(rect.width,rect.height)*0.65;
+  const isMobile=rect.width<600;
+  const maxS=Math.min(rect.width,rect.height)*(isMobile?0.82:0.65);
   const tS=Math.floor(maxS/gridSize);const pxS=tS*gridSize;
   pzl.style.width=pxS+'px';pzl.style.height=pxS+'px';
   pzl.style.gridTemplateColumns=`repeat(${gridSize},${tS}px)`;
