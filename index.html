@@ -243,11 +243,17 @@
   </div>
 </div>
 
-<!-- Firebase SDK (compat for simplicity) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<!-- Firebase SDK (loaded async — never blocks camera) -->
+<script async src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script async src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script type="module">
+window.onerror=function(msg,url,line){
+  const lm=document.getElementById('loadMsg');
+  if(lm)lm.innerHTML='ERROR: '+msg+'<br>Line:'+line+'<br><br><span style="font-size:10px;color:#ff4d6d;cursor:pointer;border:1px solid #ff4d6d;padding:6px 16px;border-radius:20px" onclick="location.reload()">↺ RETRY</span>';
+  console.error('Global error:',msg,url,line);
+};
+
 const $=id=>document.getElementById(id);
 const vid=$('vid'),hC=$('handCanvas'),ctx=hC.getContext('2d'),stg=$('stage'),pzl=$('pzl');
 
@@ -268,21 +274,24 @@ const FIREBASE_CONFIG = {
   projectId: "rin-puzzle"
 };
 
-// Auto-connect on load
-(function initFirebase(){
-  if(FIREBASE_CONFIG.apiKey==='YOUR_API_KEY_HERE'){
-    console.warn('⚠️ Firebase not configured — using local scores only. Edit FIREBASE_CONFIG in index.html.');
-    return;
+// Connect to Firebase when SDK is ready (non-blocking)
+async function connectFirebase(retries=10){
+  if(FIREBASE_CONFIG.apiKey==='YOUR_API_KEY_HERE')return;
+  for(let i=0;i<retries;i++){
+    if(typeof firebase!=='undefined'&&firebase.firestore){
+      try{
+        firebase.initializeApp(FIREBASE_CONFIG);
+        db=firebase.firestore();
+        useFirebase=true;
+        console.log('🔥 Firebase connected to:',FIREBASE_CONFIG.projectId);
+        return;
+      }catch(e){console.error('Firebase init failed:',e);return}
+    }
+    await new Promise(r=>setTimeout(r,500));
   }
-  try{
-    firebase.initializeApp(FIREBASE_CONFIG);
-    db=firebase.firestore();
-    useFirebase=true;
-    console.log('🔥 Firebase connected to:',FIREBASE_CONFIG.projectId);
-  }catch(e){
-    console.error('Firebase init failed:',e);
-  }
-})();
+  console.warn('Firebase SDK did not load — using local scores');
+}
+connectFirebase();
 
 // ===== LEADERBOARD (Firebase Firestore) =====
 async function saveScore(name,seconds,moveCount,grid){
